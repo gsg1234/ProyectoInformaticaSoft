@@ -1,116 +1,99 @@
 import pygame
 import sys
-import time
+import threading
 
-# Inicializar pygame
-pygame.init()
+class PanelLuces:
+    def __init__(self, width=400, height=300):
+        # Inicializar Pygame
+        pygame.init()
+        self.WIDTH, self.HEIGHT = width, height
+        self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
+        pygame.display.set_caption("Botón y Luces Indicadoras")
 
-# Configuración de ventana
-WIDTH, HEIGHT = 400, 300
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Botón y Luces Indicadoras")
+        # Colores
+        self.WHITE = (255, 255, 255)
+        self.BLACK = (0, 0, 0)
+        self.GRAY = (180, 180, 180)
+        self.GRAY2 = (100,100,100)
+        self.GREEN = (0, 200, 0)
+        self.RED = (200, 0, 0)
+        self.YELLOW = (200, 200, 0)
+        self.DARK = (50, 50, 50)
 
-# Colores
-WHITE   = (255, 255, 255)
-BLACK   = (0, 0, 0)
-GRAY    = (180, 180, 180)
-GRAY2   = (100,100,100)
-GREEN   = (0, 200, 0)
-RED     = (200, 0, 0)
-YELLOW  = (200, 200, 0)
-DARK    = (50, 50, 50)  # para luces apagadas
+        # Luces
+        self.light_positions = {
+            "roja": (100, 200),
+            "amarilla": (200, 200),
+            "verde": (300, 200)
+        }
+        self.lights = {"roja": False, "amarilla": False, "verde": False}
 
-# Posiciones de luces
-light_positions = {
-    "roja": (100, 200),
-    "amarilla": (200, 200),
-    "verde": (300, 200)
-}
+        # Botón
+        self.button_rect = pygame.Rect(150, 50, 100, 40)
+        self.button_pressed = False
 
-# Estados de luces
-lights = {
-    "roja": False,
-    "amarilla": False,
-    "verde": False
-}
+        # Control del bucle
+        self.running = True
 
-# Botón
-button_rect = pygame.Rect(150, 50, 100, 40)
-button_pressed = False
+        # Lock para sincronización con otros hilos
+        self.lock = threading.Lock()
 
-# Control del parpadeo
-last_toggle_time = time.time()
+    # ==============================
+    # FUNCIONES DE CONTROL DE LUCES
+    # ==============================
+    def apagar_luces(self):
+        with self.lock:
+            for key in self.lights:
+                self.lights[key] = False
 
-# ==============================
-# FUNCIONES
-# ==============================
+    def encender_luz(self, color, estado=True):
+        with self.lock:
+            if color in self.lights:
+                self.lights[color] = estado
 
-def toggle_lights():
-    """Alterna el estado de todas las luces"""
-    for key in lights:
-        lights[key] = not lights[key]
+    # ==============================
+    # FUNCIONES DE DIBUJO
+    # ==============================
+    def dibujar_luces(self):
+        with self.lock:
+            for nombre, pos in self.light_positions.items():
+                color = (
+                    self.RED if nombre == "roja" and self.lights[nombre] else
+                    self.YELLOW if nombre == "amarilla" and self.lights[nombre] else
+                    self.GREEN if nombre == "verde" and self.lights[nombre] else self.DARK
+                )
+                pygame.draw.circle(self.screen, color, pos, 30)
 
-def apagar_luces():
-    """Apaga todas las luces"""
-    for key in lights:
-        lights[key] = False
+    def dibujar_boton(self):
+        if self.button_pressed:
+            pygame.draw.rect(self.screen, self.GRAY2, self.button_rect)
+        else:
+            pygame.draw.rect(self.screen, self.GRAY, self.button_rect)
+        font = pygame.font.SysFont(None, 24)
+        text = font.render("BOTÓN", True, self.BLACK)
+        self.screen.blit(text, (self.button_rect.x + 20, self.button_rect.y + 10))
 
-def dibujar_luces():
-    """Dibuja las luces según su estado"""
-    for nombre, pos in light_positions.items():
-        color = (
-            RED if nombre == "roja" and lights[nombre] else
-            YELLOW if nombre == "amarilla" and lights[nombre] else
-            GREEN if nombre == "verde" and lights[nombre] else DARK
-        )
-        pygame.draw.circle(screen, color, pos, 30)
+    # ==============================
+    # LOOP PRINCIPAL
+    # ==============================
+    def run(self):
+        clock = pygame.time.Clock()
 
-def dibujar_boton():
-    """Dibuja el botón"""
-    if button_pressed:
-        pygame.draw.rect(screen, GRAY2, button_rect)
-    else:
-        pygame.draw.rect(screen, GRAY, button_rect)
-    font = pygame.font.SysFont(None, 24)
-    text = font.render("BOTÓN", True, BLACK)
-    screen.blit(text, (button_rect.x + 20, button_rect.y + 10))
+        while self.running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if self.button_rect.collidepoint(event.pos):
+                        self.button_pressed = True
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    self.button_pressed = False
 
-# ==============================
-
-# Bucle principal
-clock = pygame.time.Clock()
-while True:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            if button_rect.collidepoint(event.pos):
-                button_pressed = True
-        elif event.type == pygame.MOUSEBUTTONUP:
-            button_pressed = False
-            apagar_luces()
-
-    # Si el botón está presionado -> hacer titilar
-    ###############################################################
-    ###############################################################
-    #Llenar con codigo
-    
-
-
-
-
-
-    
-    ###############################################################
-    ###############################################################
-    # Fondo
-    screen.fill(BLACK)
-
-    # Dibujar elementos
-    dibujar_boton()
-    dibujar_luces()
-
-    # Actualizar pantalla
-    pygame.display.flip()
-    clock.tick(30)
+            # Dibujar
+            self.screen.fill(self.BLACK)
+            self.dibujar_boton()
+            self.dibujar_luces()
+            pygame.display.flip()
+            clock.tick(30)
