@@ -41,11 +41,6 @@ class PanelLuces:
     # ==============================
     # FUNCIONES DE CONTROL DE LUCES
     # ==============================
-    def apagar_luces(self):
-        with self.lock:
-            for key in self.lights:
-                self.lights[key] = False
-
     def encender_luz(self, color, estado=True):
         with self.lock:
             if color in self.lights:
